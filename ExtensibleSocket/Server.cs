@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -37,7 +38,7 @@ namespace ExtensibleSocket
         /// <summary>
         /// List of clients that are connected to the server
         /// </summary>
-        public List<Client> Clients { get; private set; }
+        public List<ServerClient> Clients { get; private set; }
         /// <summary>
         /// Limit of clients that can connect to the server
         /// </summary>
@@ -49,8 +50,11 @@ namespace ExtensibleSocket
         /// <summary>
         /// Current client that server should work with
         /// </summary>
-        public Client Client { get; private set; }
-        private bool busySend = false;
+        public ServerClient Client { get; private set; }
+        /// <summary>
+        /// Length of bytes that bytes, that you want to send, have split to (by default it's 4096)
+        /// </summary>
+        public int BufferSize { get; private set; }
 
         #region constructors
 
@@ -64,10 +68,11 @@ namespace ExtensibleSocket
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IPv4);
             Domains = new List<string>();
             IPAddresses = new List<IPAddress>();
-            Clients = new List<Client>();
+            Clients = new List<ServerClient>();
             ClientsLimit = 1000;
             Started = false;
             Client = null;
+            BufferSize = 4096;
         }
 
         /// <summary>
@@ -80,10 +85,11 @@ namespace ExtensibleSocket
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IPv4);
             Domains = new List<string>();
             IPAddresses = new List<IPAddress>();
-            Clients = new List<Client>();
+            Clients = new List<ServerClient>();
             ClientsLimit = clientsLimit;
             Started = false;
             Client = null;
+            BufferSize = 4096;
         }
 
         /// <summary>
@@ -96,10 +102,11 @@ namespace ExtensibleSocket
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IPv4);
             Domains = new List<string>();
             IPAddresses = new List<IPAddress>();
-            Clients = new List<Client>();
+            Clients = new List<ServerClient>();
             ClientsLimit = clientsLimit;
             Started = false;
             Client = null;
+            BufferSize = 4096;
         }
 
         /// <summary>
@@ -112,10 +119,11 @@ namespace ExtensibleSocket
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IPv4);
             Domains = new List<string>();
             IPAddresses = new List<IPAddress>();
-            Clients = new List<Client>();
+            Clients = new List<ServerClient>();
             ClientsLimit = clientsLimit;
             Started = false;
             Client = null;
+            BufferSize = 4096;
         }
 
         /// <summary>
@@ -128,10 +136,11 @@ namespace ExtensibleSocket
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IPv4);
             Domains = domains;
             IPAddresses = new List<IPAddress>();
-            Clients = new List<Client>();
+            Clients = new List<ServerClient>();
             ClientsLimit = clientsLimit;
             Started = false;
             Client = null;
+            BufferSize = 4096;
         }
 
         /// <summary>
@@ -144,15 +153,144 @@ namespace ExtensibleSocket
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IPv4);
             Domains = domains;
             IPAddresses = iPAddresses;
-            Clients = new List<Client>();
+            Clients = new List<ServerClient>();
             ClientsLimit = clientsLimit;
             Started = false;
             Client = null;
+            BufferSize = 4096;
+        }
+
+        /// <summary>
+        /// Constructor with custon server settings
+        /// </summary>
+        public Server(int clientsLimit, Encoding encoding, int port, List<string> domains, List<IPAddress> iPAddresses, int bufferSize)
+        {
+            Encoding = encoding;
+            Port = port;
+            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IPv4);
+            Domains = domains;
+            IPAddresses = iPAddresses;
+            Clients = new List<ServerClient>();
+            ClientsLimit = clientsLimit;
+            Started = false;
+            Client = null;
+            BufferSize = bufferSize;
         }
 
         #endregion
 
         #region functions
+
+        public StartResult Start()
+        {
+            StartResult sr = new StartResult(false, "", "", null, false);
+            try
+            {
+                Socket.Bind(new IPEndPoint(IPAddress.Any, Port));
+                Socket.Listen(ClientsLimit);
+                StartListener();
+                Started = true;
+                sr.Data = "Server started successfuly";
+                sr.Error = null;
+                sr.ErrorText = "";
+                sr.HasError = false;
+                sr.Success = true;
+                return sr;
+            }
+            catch (Exception e)
+            {
+                sr.Data = e.ToString();
+                sr.Success = false;
+                sr.HasError = true;
+                sr.Error = e;
+                sr.ErrorText = e.ToString();
+                return sr;
+            }
+        }
+
+        public StopResult Stop()
+        {
+            StopResult sr = new StopResult(false, "", "", null, false);
+            try
+            {
+                return sr;
+            }
+            catch (Exception e)
+            {
+                sr.Data = e.ToString();
+                sr.Success = false;
+                sr.HasError = true;
+                sr.Error = e;
+                sr.ErrorText = e.ToString();
+                return sr;
+            }
+        }
+
+        public RestartResult Restart()
+        {
+            RestartResult rr = new RestartResult(false, "", "", null, false);
+            try
+            {
+                return rr;
+            }
+            catch (Exception e)
+            {
+                rr.Data = e.ToString();
+                rr.Success = false;
+                rr.HasError = true;
+                rr.Error = e;
+                rr.ErrorText = e.ToString();
+                return rr;
+            }
+        }
+
+        private async void StartListener()
+        {
+            await Task.Run(() => {
+                while (Started)
+                {
+                    try
+                    {
+                        Socket newSocket = Socket.Accept();
+                        int id = 0;
+                        if (Clients.Count > 0)
+                        {
+                            id = Clients.Last().ID + 1;
+                        }
+                        IPAddress ip = IPAddress.Parse(((IPEndPoint)newSocket.RemoteEndPoint).Address.ToString());
+                        ServerClient client = new ServerClient(Port, newSocket);
+                        client.IPAddress = ip;
+                        client.ID = id;
+                        client.SocketConnected();
+                        ClientConnectedEvent(this, new ClientConnectedArgs(client));
+                    }
+                    catch (Exception e)
+                    {
+                        ErrorCaughtEvent(this, new ErrorCaughtArgs(e));
+                    }
+                }
+            });
+        }
+
+        #region events
+
+        public class ErrorCaughtArgs
+        {
+            public ErrorCaughtArgs(Exception e) { Error = e; }
+            public Exception Error { get; }
+        }
+        public delegate void ErrorCaughtEventHandler(object sender, ErrorCaughtArgs e);
+        public event ErrorCaughtEventHandler ErrorCaughtEvent;
+
+        public class ClientConnectedArgs
+        {
+            public ClientConnectedArgs(ServerClient c) { Client = c; }
+            public ServerClient Client { get; }
+        }
+        public delegate void ClientConnectedEventHandler(object sender, ClientConnectedArgs e);
+        public event ClientConnectedEventHandler ClientConnectedEvent;
+
+        #endregion
 
         /// <summary>
         /// Function that sends data in bytes to client and returns SendResult class that contains different kinds of information
@@ -162,6 +300,88 @@ namespace ExtensibleSocket
             SendResult sr = new SendResult(false, "", "", null, false, 0);
             try
             {
+                List<byte[]> parts = new List<byte[]>();
+                if (bytes.Length <= BufferSize)
+                {
+                    parts.Add(bytes);
+                }
+                else
+                {
+                    parts = ByteArraySplit(bytes, BufferSize);
+                }
+                Client.Socket.Send(ConvertToBytes(parts.Count.ToString()));
+                int size = 2;
+                byte[] buffer = new byte[size];
+                int len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                string output = Encoding.Unicode.GetString(buffer, 0, len);
+                if (output == "0")
+                {
+                    Client.Socket.Send(ConvertToBytes("1"));
+                    size = 100;
+                    buffer = new byte[size];
+                    len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                    size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
+                    Client.Socket.Send(ConvertToBytes("1"));
+                    buffer = new byte[size];
+                    len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                    output = Encoding.Unicode.GetString(buffer, 0, len);
+                    sr.BytesSent = 0;
+                    sr.Data = output;
+                    sr.ErrorText = output;
+                    sr.HasError = true;
+                    sr.Error = null;
+                    sr.Success = false;
+                    return sr;
+                }
+                for (int i = 0; i < parts.Count; i++)
+                {
+                    Client.Socket.Send(ConvertToBytes(parts[i].Length.ToString()));
+                    buffer = new byte[2];
+                    len = Client.Socket.Receive(buffer, 2, SocketFlags.None);
+                    output = Encoding.Unicode.GetString(buffer, 0, len);
+                    if (output == "0")
+                    {
+                        Client.Socket.Send(ConvertToBytes("1"));
+                        size = 100;
+                        buffer = new byte[size];
+                        len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                        size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
+                        Client.Socket.Send(ConvertToBytes("1"));
+                        buffer = new byte[size];
+                        len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                        output = Encoding.Unicode.GetString(buffer, 0, len);
+                        sr.BytesSent = 0;
+                        sr.Data = output;
+                        sr.ErrorText = output;
+                        sr.HasError = true;
+                        sr.Error = null;
+                        sr.Success = false;
+                        return sr;
+                    }
+                    Client.Socket.Send(parts[i]);
+                    buffer = new byte[2];
+                    len = Client.Socket.Receive(buffer, 2, SocketFlags.None);
+                    output = Encoding.Unicode.GetString(buffer, 0, len);
+                    if (output == "0")
+                    {
+                        Client.Socket.Send(ConvertToBytes("1"));
+                        size = 100;
+                        buffer = new byte[size];
+                        len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                        size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
+                        Client.Socket.Send(ConvertToBytes("1"));
+                        buffer = new byte[size];
+                        len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                        output = Encoding.Unicode.GetString(buffer, 0, len);
+                        sr.BytesSent = 0;
+                        sr.Data = output;
+                        sr.ErrorText = output;
+                        sr.HasError = true;
+                        sr.Error = null;
+                        sr.Success = false;
+                        return sr;
+                    }
+                }
                 sr.Data = "Data successfully sent";
                 sr.BytesSent = bytes.Length;
                 sr.Error = null;
@@ -172,6 +392,29 @@ namespace ExtensibleSocket
             }
             catch (Exception e)
             {
+                if (Client.SocketConnected())
+                {
+                    Client.Socket.Send(ConvertToBytes("0"));
+                    int size = 2;
+                    byte[] buffer = new byte[size];
+                    int len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                    string output = Encoding.Unicode.GetString(buffer, 0, len);
+                    if (output == "1")
+                    {
+                        Client.Socket.Send(ConvertToBytes(ConvertToBytes(e.ToString()).Length.ToString()));
+                        size = 2;
+                        buffer = new byte[size];
+                        len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                        output = Encoding.Unicode.GetString(buffer, 0, len);
+                        if (output == "1")
+                        {
+                            Client.Socket.Send(ConvertToBytes(e.ToString()));
+                            size = 2;
+                            buffer = new byte[size];
+                            len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                        }
+                    }
+                }
                 sr.Success = false;
                 sr.HasError = true;
                 sr.ErrorText = e.ToString();
@@ -181,8 +424,134 @@ namespace ExtensibleSocket
                 return sr;
             }
         }
+        /// <summary>
+        /// Function that receive data in bytes from client and returns ReceiveResult class that contains different kinds of information
+        /// </summary>
+        public ReceiveResult ReceiveData()
+        {
+            ReceiveResult sr = new ReceiveResult(false, "", "", null, false, 0);
+            try
+            {
+                int size = 100;
+                byte[] buffer = new byte[size];
+                int len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                if (Encoding.Unicode.GetString(buffer, 0, len) == "0")
+                {
+
+                }
+                int partsCount = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
+                Client.Socket.Send(ConvertToBytes("1"));
+                List<byte[]> parts = new List<byte[]>();
+                for (int i = 0; i < partsCount; i++)
+                {
+                    size = 100;
+                    buffer = new byte[size];
+                    len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                    size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
+                    Client.Socket.Send(ConvertToBytes("1"));
+                    buffer = new byte[size];
+                    len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                    Client.Socket.Send(ConvertToBytes("1"));
+                    parts.Add(buffer);
+                }
+                byte[] bytes = ConcatToOneByteArray(parts.ToArray());
+                sr.Data = ConvertToString(bytes);
+                sr.BytesReceived = bytes.Length;
+                sr.Bytes = bytes;
+                sr.Error = null;
+                sr.HasError = false;
+                sr.ErrorText = "";
+                sr.Success = true;
+                return sr;
+            }
+            catch (Exception e)
+            {
+                Client.Socket.Send(ConvertToBytes("0"));
+                int size = 2;
+                byte[] buffer = new byte[size];
+                int len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                string output = Encoding.Unicode.GetString(buffer, 0, len);
+                if (output == "1")
+                {
+                    Client.Socket.Send(ConvertToBytes(ConvertToBytes(e.ToString()).Length.ToString()));
+                    size = 2;
+                    buffer = new byte[size];
+                    len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                    output = Encoding.Unicode.GetString(buffer, 0, len);
+                    if (output == "1")
+                    {
+                        Client.Socket.Send(ConvertToBytes(e.ToString()));
+                    }
+                }
+                sr.Success = false;
+                sr.HasError = true;
+                sr.ErrorText = e.ToString();
+                sr.Error = e;
+                sr.Data = e.ToString();
+                sr.BytesReceived = 0;
+                return sr;
+            }
+        }
+
+        private string ConvertToString(byte[] bytes)
+        {
+            try
+            {
+                return Encoding.GetString(bytes);
+            }
+            catch (Exception)
+            {
+                ErrorCaughtEvent(this, new ErrorCaughtArgs(e));
+                return null;
+            }
+        }
+
+        private byte[] ConvertToBytes(string str)
+        {
+            try
+            {
+                return Encoding.GetBytes(str);
+            }
+            catch (Exception)
+            {
+                ErrorCaughtEvent(this, new ErrorCaughtArgs(e));
+                return null;
+            }
+        }
+
+        private List<byte[]> ByteArraySplit(byte[] byteData, long BufferSize)
+        {
+            try
+            {
+                List<byte[]> chunks = byteData.Select((value, index) => new { PairNum = Math.Floor(index / (double)BufferSize), value }).GroupBy(pair => pair.PairNum).Select(grp => grp.Select(g => g.value).ToArray()).ToList();
+                return chunks;
+            }
+            catch (Exception e)
+            {
+                ErrorCaughtEvent(this, new ErrorCaughtArgs(e));
+                return null;
+            }
+        }
+
+        private byte[] ConcatToOneByteArray(params byte[][] arrays)
+        {
+            try
+            {
+                byte[] rv = new byte[arrays.Sum(a => a.Length)];
+                int offset = 0;
+                foreach (byte[] array in arrays)
+                {
+                    Buffer.BlockCopy(array, 0, rv, offset, array.Length);
+                    offset += array.Length;
+                }
+                return rv;
+            }
+            catch (Exception e)
+            {
+                ErrorCaughtEvent(this, new ErrorCaughtArgs(e));
+                return null;
+            }
+        }
+        #endregion
     }
-
-    #endregion
-
 }

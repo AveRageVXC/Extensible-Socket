@@ -6,6 +6,9 @@ namespace ExtensibleSocket
 {
     public class SendResult : Result
     {
+        /// <summary>
+        /// Length of bytes that were sent
+        /// </summary>
         public long BytesSent { get; set; }
 
         public SendResult(bool success, string data, string errorText, Exception error, bool hasError, long bytesSent) : base(success, data, errorText, error, hasError)
