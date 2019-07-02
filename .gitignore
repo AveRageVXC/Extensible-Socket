@@ -1,0 +1,6 @@
+.git
+.vs
+ExtensibleSocket/.vs/*
+ExtensibleSocket/bin/*
+ExtensibleSocket/obj/*
+Interface
