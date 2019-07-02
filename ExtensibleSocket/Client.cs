@@ -125,6 +125,7 @@ namespace ExtensibleSocket
             try
             {
                 Socket.Connect(new IPEndPoint(IPAddress, Port));
+                ConnectedEvent(this, new ConnectedArgs(Socket));
                 Started = true;
                 cr.Data = "Client successfuly connected";
                 cr.Error = null;
@@ -154,6 +155,7 @@ namespace ExtensibleSocket
             {
                 IPAddress = iPAddress;
                 Socket.Connect(new IPEndPoint(IPAddress, Port));
+                ConnectedEvent(this, new ConnectedArgs(Socket));
                 cr.Data = "Client successfuly connected";
                 cr.Error = null;
                 cr.ErrorText = "";
@@ -183,6 +185,7 @@ namespace ExtensibleSocket
                 IPAddress = iPAddress;
                 Port = port;
                 Socket.Connect(new IPEndPoint(IPAddress, Port));
+                ConnectedEvent(this, new ConnectedArgs(Socket));
                 cr.Data = "Client successfuly connected";
                 cr.Error = null;
                 cr.ErrorText = "";
@@ -210,6 +213,7 @@ namespace ExtensibleSocket
             try
             {
                 Socket.Connect(new IPEndPoint(IPAddress, Port));
+                ConnectedEvent(this, new ConnectedArgs(Socket));
                 cr.Data = "Client successfuly connected";
                 cr.Error = null;
                 cr.ErrorText = "";
@@ -238,6 +242,7 @@ namespace ExtensibleSocket
             {
                 IPAddress = iPAddress;
                 Socket.Connect(new IPEndPoint(IPAddress, Port));
+                ConnectedEvent(this, new ConnectedArgs(Socket));
                 cr.Data = "Client successfuly connected";
                 cr.Error = null;
                 cr.ErrorText = "";
@@ -267,6 +272,7 @@ namespace ExtensibleSocket
                 IPAddress = iPAddress;
                 Port = port;
                 Socket.Connect(new IPEndPoint(IPAddress, Port));
+                ConnectedEvent(this, new ConnectedArgs(Socket));
                 cr.Data = "Client successfuly connected";
                 cr.Error = null;
                 cr.ErrorText = "";
