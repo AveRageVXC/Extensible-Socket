@@ -1,7 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net452</TargetFramework>
+    <TargetFramework>net472</TargetFramework>
+    <Authors>L1NK</Authors>
+    <Version>1.0.0.2</Version>
+    <Description>High-perfomance extensible socket library</Description>
+    <PackageIconUrl>https://i.ibb.co/TWr6bnP/Icon1024.png</PackageIconUrl>
+    <RepositoryUrl>https://github.com/Linkovskiy/ExtensibleSocket</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Linkovskiy/ExtensibleSocket</PackageProjectUrl>
+    <PackageTags>c# dotnet socket fast library high perfomance</PackageTags>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <AssemblyVersion>1.0.0.2</AssemblyVersion>
+    <PackageId>ExtensibleSocketLibrary</PackageId>
+    <Product>ExtensibleSocketLibrary</Product>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
 
 </Project>
