@@ -56,7 +56,7 @@ namespace ExtensibleSocket
         /// <summary>
         /// Length of bytes that bytes, that you want to send, have split to (by default it's 4096)
         /// </summary>
-        public int BufferSize { get; private set; }
+        public int BufferSize { get; set; }
 
         #region constructors
 
@@ -91,7 +91,7 @@ namespace ExtensibleSocket
         {
             Encoding = Encoding.Unicode;
             Port = 1337;
-            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IPv4);
+            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             Domains = new List<string>();
             IPAddresses = new List<IPAddress>();
             Clients = new List<ServerClient>();
@@ -115,7 +115,7 @@ namespace ExtensibleSocket
         {
             Encoding = encoding;
             Port = 1337;
-            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IPv4);
+            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             Domains = new List<string>();
             IPAddresses = new List<IPAddress>();
             Clients = new List<ServerClient>();
@@ -139,7 +139,7 @@ namespace ExtensibleSocket
         {
             Encoding = encoding;
             Port = port;
-            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IPv4);
+            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             Domains = new List<string>();
             IPAddresses = new List<IPAddress>();
             Clients = new List<ServerClient>();
@@ -163,7 +163,7 @@ namespace ExtensibleSocket
         {
             Encoding = encoding;
             Port = port;
-            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IPv4);
+            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             Domains = domains;
             IPAddresses = new List<IPAddress>();
             Clients = new List<ServerClient>();
@@ -187,7 +187,7 @@ namespace ExtensibleSocket
         {
             Encoding = encoding;
             Port = port;
-            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IPv4);
+            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             Domains = domains;
             IPAddresses = iPAddresses;
             Clients = new List<ServerClient>();
@@ -211,7 +211,7 @@ namespace ExtensibleSocket
         {
             Encoding = encoding;
             Port = port;
-            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IPv4);
+            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             Domains = domains;
             IPAddresses = iPAddresses;
             Clients = new List<ServerClient>();
@@ -235,7 +235,7 @@ namespace ExtensibleSocket
         {
             Encoding = encoding;
             Port = port;
-            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IPv4);
+            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             Domains = domains;
             IPAddresses = iPAddresses;
             Clients = new List<ServerClient>();
@@ -251,6 +251,26 @@ namespace ExtensibleSocket
 
             });
         }
+
+        #endregion
+
+        #region events
+
+        public class ErrorCaughtArgs
+        {
+            public ErrorCaughtArgs(Exception e) { Error = e; }
+            public Exception Error { get; }
+        }
+        public delegate void ErrorCaughtEventHandler(object sender, ErrorCaughtArgs e);
+        public event ErrorCaughtEventHandler ErrorCaughtEvent;
+
+        public class ClientConnectedArgs
+        {
+            public ClientConnectedArgs(ServerClient c) { Client = c; }
+            public ServerClient Client { get; }
+        }
+        public delegate void ClientConnectedEventHandler(object sender, ClientConnectedArgs e);
+        public event ClientConnectedEventHandler ClientConnectedEvent;
 
         #endregion
 
@@ -381,26 +401,6 @@ namespace ExtensibleSocket
                 }
             });
         }
-
-        #region events
-
-        public class ErrorCaughtArgs
-        {
-            public ErrorCaughtArgs(Exception e) { Error = e; }
-            public Exception Error { get; }
-        }
-        public delegate void ErrorCaughtEventHandler(object sender, ErrorCaughtArgs e);
-        public event ErrorCaughtEventHandler ErrorCaughtEvent;
-
-        public class ClientConnectedArgs
-        {
-            public ClientConnectedArgs(ServerClient c) { Client = c; }
-            public ServerClient Client { get; }
-        }
-        public delegate void ClientConnectedEventHandler(object sender, ClientConnectedArgs e);
-        public event ClientConnectedEventHandler ClientConnectedEvent;
-
-        #endregion
 
         /// <summary>
         /// Function that sends data in bytes to client and returns SendResult class that contains different kinds of information
@@ -680,7 +680,23 @@ namespace ExtensibleSocket
                 int len = Client.Socket.Receive(buffer, size, SocketFlags.None);
                 if (Encoding.Unicode.GetString(buffer, 0, len) == "0")
                 {
-
+                    Client.Socket.Send(ConvertToBytes("1"));
+                    size = 100;
+                    buffer = new byte[size];
+                    len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                    size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
+                    Client.Socket.Send(ConvertToBytes("1"));
+                    buffer = new byte[size];
+                    len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                    Client.Socket.Send(ConvertToBytes("1"));
+                    sr.Data = Encoding.Unicode.GetString(buffer, 0, len);
+                    sr.BytesReceived = 0;
+                    sr.Bytes = null;
+                    sr.Error = null;
+                    sr.HasError = true;
+                    sr.ErrorText = Encoding.Unicode.GetString(buffer, 0, len);
+                    sr.Success = false;
+                    return sr;
                 }
                 int partsCount = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
                 Client.Socket.Send(ConvertToBytes("1"));
@@ -690,10 +706,50 @@ namespace ExtensibleSocket
                     size = 100;
                     buffer = new byte[size];
                     len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                    if (Encoding.Unicode.GetString(buffer, 0, len) == "0")
+                    {
+                        Client.Socket.Send(ConvertToBytes("1"));
+                        size = 100;
+                        buffer = new byte[size];
+                        len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                        size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
+                        Client.Socket.Send(ConvertToBytes("1"));
+                        buffer = new byte[size];
+                        len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                        Client.Socket.Send(ConvertToBytes("1"));
+                        sr.Data = Encoding.Unicode.GetString(buffer, 0, len);
+                        sr.BytesReceived = 0;
+                        sr.Bytes = null;
+                        sr.Error = null;
+                        sr.HasError = true;
+                        sr.ErrorText = Encoding.Unicode.GetString(buffer, 0, len);
+                        sr.Success = false;
+                        return sr;
+                    }
                     size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
                     Client.Socket.Send(ConvertToBytes("1"));
                     buffer = new byte[size];
                     len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                    if (Encoding.Unicode.GetString(buffer, 0, len) == "0")
+                    {
+                        Client.Socket.Send(ConvertToBytes("1"));
+                        size = 100;
+                        buffer = new byte[size];
+                        len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                        size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
+                        Client.Socket.Send(ConvertToBytes("1"));
+                        buffer = new byte[size];
+                        len = Client.Socket.Receive(buffer, size, SocketFlags.None);
+                        Client.Socket.Send(ConvertToBytes("1"));
+                        sr.Data = Encoding.Unicode.GetString(buffer, 0, len);
+                        sr.BytesReceived = 0;
+                        sr.Bytes = null;
+                        sr.Error = null;
+                        sr.HasError = true;
+                        sr.ErrorText = Encoding.Unicode.GetString(buffer, 0, len);
+                        sr.Success = false;
+                        return sr;
+                    }
                     Client.Socket.Send(ConvertToBytes("1"));
                     parts.Add(buffer);
                 }
@@ -736,7 +792,10 @@ namespace ExtensibleSocket
             }
         }
 
-        private string ConvertToString(byte[] bytes)
+        /// <summary>
+        /// Function that converts bytes to string
+        /// </summary>
+        public string ConvertToString(byte[] bytes)
         {
             try
             {
@@ -749,7 +808,10 @@ namespace ExtensibleSocket
             }
         }
 
-        private byte[] ConvertToBytes(string str)
+        /// <summary>
+        /// Function that converts string to bytes
+        /// </summary>
+        public byte[] ConvertToBytes(string str)
         {
             try
             {
@@ -762,7 +824,10 @@ namespace ExtensibleSocket
             }
         }
 
-        private List<byte[]> ByteArraySplit(byte[] byteData, long BufferSize)
+        /// <summary>
+        /// Function that splits array of bytes by certain count of bytes
+        /// </summary>
+        public List<byte[]> ByteArraySplit(byte[] byteData, long BufferSize)
         {
             try
             {
@@ -776,7 +841,10 @@ namespace ExtensibleSocket
             }
         }
 
-        private byte[] ConcatToOneByteArray(params byte[][] arrays)
+        /// <summary>
+        /// Function that joins all arrays of bytes into one array of bytes
+        /// </summary>
+        public byte[] ConcatToOneByteArray(params byte[][] arrays)
         {
             try
             {
