@@ -1,5 +1,5 @@
 # Extensible Socket Library
-![](https://github.com/Linkovskiy/ExtensibleSocket/Icon1024.png)
+![](https://raw.githubusercontent.com/linkovskiy/ExtensibleSocket/master/Icon128.png)
 
 ## About library
 

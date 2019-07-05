@@ -776,6 +776,7 @@ namespace ExtensibleSocket
             {
                 byte[] bytesCount = ConvertToBytes(bytes.Length.ToString());
                 NetworkStream.Write(bytesCount, 0, bytesCount.Length);
+                byte[] buffer = new byte[]
                 NetworkStream.Read(new byte[2], 0, new byte[2].Length);
                 NetworkStream.Write(bytes, 0, bytes.Length);
                 NetworkStream.Read(new byte[2], 0, new byte[2].Length);
