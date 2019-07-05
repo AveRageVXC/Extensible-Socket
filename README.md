@@ -21,31 +21,39 @@ It is simple. Everybody knows that it is not a bug, but a feature.
 
 Please feel free to write us or open an issue, we would be glad to answer your questions.
 
+## Nuget
+
+This library is available on Nuget.
+
+There is a link: https://www.nuget.org/packages/ExtensibleSocketLibrary/
+
+https://www.nuget.org/packages/ExtensibleSocketLibrary/
+
 ## Examples
 
 ### Start server and client
 
 First of all, we need to start server and client.
 
-Let&apos;s build server
+Let&apos;s build server.
 
 ```csharp
 int maxClientsLimit = 1000; // Max number of clients that can connect to server
 int port = 1337; // Port
-int bufferSize = 4096; // Hard to explain, but just try to keep it in distance between 1024 and 20480 (the more bufferSize, the more speed, but actually to get very high speed use SendDataFast() function)
+int bufferSize = 4096; // Difficult to explain, but just try to keep it in distance between 1024 and 20480 (the more bufferSize, the more speed, but actually to get very high speed use SendDataFast() function)
 Encoding encoding = Encoding.Unicode; // Encoding
 List<string> domainsAllowed = new List<string>(); // Domains that are allowed, keep it empty to allow all domains
 List<IPAddress> iPAddressesAllowed = new List<IPAddress>(); // IPAddresses that are allowed, keep it empty to allow all IPAddresses
 Server server = new Server(maxClientsLimit, port, bufferSize, encoding, domainsAllowed, iPAddressesAllowed);
 ```
 
-Now, we can start server
+Now, we can start server.
 
 ```csharp
 StartResult startResult = server.Start(); // Function returns StartResult that contains information about errors and another kinds of data
 ```
 
-After creating server, we can build client
+After creating server, we can build client.
 
 ```csharp
 IPAddress ip = IPAddress.Parse("127.0.0.1"); // IPAddress that client have to connect to
@@ -107,7 +115,7 @@ The same as in previous block, but there is SendDataFast() and ReceiveDataFast()
 
 ### Start stream
 
-There is simple example of a stream.
+There is a simple example of stream.
 
 ```csharp
 int delay = 10; // Milliseconds

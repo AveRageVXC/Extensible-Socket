@@ -805,32 +805,168 @@ namespace ExtensibleSocket
 
         #endregion
 
-        public SendResult StreamSend(byte[] bytes)
-        {
-            Client.NetworkStream.Write(bytes, 0, bytes.Length);
-            Client.NetworkStream.Read(new byte[2], 0, new byte[2].Length);
-        }
+        #region stream functions
 
-        public ReceiveResult StreamReceive()
+        /// <summary>
+        /// Faster variant of SendData() function (this function is not so safety as SendData() function)
+        /// </summary>
+        public SendResult SendDataFast(byte[] bytes)
         {
+            SendResult sr = new SendResult(false, "", "", null, false, 0);
             try
             {
-                byte[] buffer = new byte[1024];
-                int len = Client.NetworkStream.Read(buffer, 0, buffer.Length);
-                int size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
+                byte[] bytesCount = ConvertToBytes(bytes.Length.ToString());
+                Client.NetworkStream.Write(bytesCount, 0, bytesCount.Length);
+                byte[] buffer = new byte[ConvertToBytes("1").Length];
+                Client.NetworkStream.Read(buffer, 0, buffer.Length);
+                if (ConvertToString(buffer) != "1")
+                {
+                    sr.HasError = true;
+                    sr.Error = null;
+                    sr.ErrorText = "Problems with sending data fast";
+                    sr.Success = false;
+                    sr.Data = "Problems with sending data fast";
+                    sr.BytesSent = 0;
+                    return sr;
+                }
+                Client.NetworkStream.Write(bytes, 0, bytes.Length);
+                buffer = new byte[ConvertToBytes("1").Length];
+                Client.NetworkStream.Read(buffer, 0, buffer.Length);
+                if (ConvertToString(buffer) != "1")
+                {
+                    sr.HasError = true;
+                    sr.Error = null;
+                    sr.ErrorText = "Problems with sending data fast";
+                    sr.Success = false;
+                    sr.Data = "Problems with sending data fast";
+                    sr.BytesSent = 0;
+                    return sr;
+                }
+                sr.HasError = false;
+                sr.Error = null;
+                sr.Success = true;
+                sr.ErrorText = "";
+                sr.Data = "Data sent successfuly";
+                sr.BytesSent = bytes.Length;
+                return sr;
+            }
+            catch (Exception e)
+            {
+                sr.Success = false;
+                sr.HasError = true;
+                sr.ErrorText = e.ToString();
+                sr.Error = e;
+                sr.Data = e.ToString();
+                sr.BytesSent = 0;
+                return sr;
+            }
+        }
+
+        /// <summary>
+        /// Faster variant of SendData() function (this function is not so safety as SendData() function)
+        /// </summary>
+        public SendResult SendDataFast(string str)
+        {
+            byte[] bytes = ConvertToBytes(str);
+            SendResult sr = new SendResult(false, "", "", null, false, 0);
+            try
+            {
+                byte[] bytesCount = ConvertToBytes(bytes.Length.ToString());
+                Client.NetworkStream.Write(bytesCount, 0, bytesCount.Length);
+                byte[] buffer = new byte[ConvertToBytes("1").Length];
+                Client.NetworkStream.Read(buffer, 0, buffer.Length);
+                if (ConvertToString(buffer) != "1")
+                {
+                    sr.HasError = true;
+                    sr.Error = null;
+                    sr.ErrorText = "Problems with sending data fast";
+                    sr.Success = false;
+                    sr.Data = "Problems with sending data fast";
+                    sr.BytesSent = 0;
+                    return sr;
+                }
+                Client.NetworkStream.Write(bytes, 0, bytes.Length);
+                buffer = new byte[ConvertToBytes("1").Length];
+                Client.NetworkStream.Read(buffer, 0, buffer.Length);
+                if (ConvertToString(buffer) != "1")
+                {
+                    sr.HasError = true;
+                    sr.Error = null;
+                    sr.ErrorText = "Problems with sending data fast";
+                    sr.Success = false;
+                    sr.Data = "Problems with sending data fast";
+                    sr.BytesSent = 0;
+                    return sr;
+                }
+                sr.HasError = false;
+                sr.Error = null;
+                sr.Success = true;
+                sr.ErrorText = "";
+                sr.Data = "Data sent successfuly";
+                sr.BytesSent = bytes.Length;
+                return sr;
+            }
+            catch (Exception e)
+            {
+                sr.Success = false;
+                sr.HasError = true;
+                sr.ErrorText = e.ToString();
+                sr.Error = e;
+                sr.Data = e.ToString();
+                sr.BytesSent = 0;
+                return sr;
+            }
+        }
+
+        /// <summary>
+        /// Faster variant of ReceiveData() function (this function is not so safety as ReceiveData() function)
+        /// </summary>
+        public ReceiveResult ReceiveDataFast()
+        {
+            ReceiveResult rr = new ReceiveResult(false, "", "", null, false, 0);
+            try
+            {
+                int size = 100;
+                byte[] buffer = new byte[size];
+                Client.NetworkStream.Read(buffer, 0, buffer.Length);
+                try
+                {
+                    size = Convert.ToInt32(ConvertToString(buffer));
+                }
+                catch (Exception)
+                {
+                    size = 10240000;
+                }
                 byte[] data = ConvertToBytes("1");
                 Client.NetworkStream.Write(data, 0, data.Length);
                 buffer = new byte[size];
                 Client.NetworkStream.Read(buffer, 0, buffer.Length);
                 data = ConvertToBytes("1");
                 Client.NetworkStream.Write(data, 0, data.Length);
-                return buffer;
+                rr.Data = ConvertToString(buffer);
+                rr.Error = null;
+                rr.ErrorText = "";
+                rr.HasError = false;
+                rr.Success = true;
+                rr.BytesReceived = buffer.Length;
+                rr.Bytes = buffer;
+                return rr;
             }
             catch (Exception e)
             {
-                return null;
+                byte[] data = ConvertToBytes("0");
+                Client.NetworkStream.Write(data, 0, data.Length);
+                rr.Success = false;
+                rr.HasError = true;
+                rr.ErrorText = e.ToString();
+                rr.Error = e;
+                rr.Data = e.ToString();
+                rr.BytesReceived = 0;
+                return rr;
             }
         }
+
+        #endregion
 
         #region additional functions
 
