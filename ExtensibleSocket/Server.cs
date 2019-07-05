@@ -36,7 +36,7 @@ namespace ExtensibleSocket
         /// <summary>
         /// List of clients that are connected to the server
         /// </summary>
-        public List<ServerClient> Clients { get; private set; }
+        public List<ServerClient> Clients { get; set; }
         /// <summary>
         /// Limit of clients that can connect to the server
         /// </summary>
@@ -368,6 +368,60 @@ namespace ExtensibleSocket
                     }
                 }
             });
+        }
+
+        /// <summary>
+        /// Clear disconnected clients
+        /// </summary>
+        public async void UpdateClients()
+        {
+            await Task.Run(() => {
+                try
+                {
+                    if (Clients != null)
+                    {
+                        if (Clients.Count > 0)
+                        {
+                            foreach (ServerClient client in Clients)
+                            {
+                                if (!client.SocketConnected())
+                                {
+                                    Clients.Remove(client);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    ErrorCaughtEvent(this, new ErrorCaughtArgs(e));
+                }
+            });
+        }
+
+        /// <summary>
+        /// Disconnect all clients
+        /// </summary>
+        public void DisconnectClients()
+        {
+            try
+            {
+                if (Clients != null)
+                {
+                    if (Clients.Count > 0)
+                    {
+                        foreach (ServerClient client in Clients)
+                        {
+                            client.Disconnect();
+                            Clients.Remove(client);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                ErrorCaughtEvent(this, new ErrorCaughtArgs(e));
+            }
         }
 
         #endregion

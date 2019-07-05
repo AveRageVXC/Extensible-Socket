@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace ExtensibleSocket
 {
@@ -36,6 +37,17 @@ namespace ExtensibleSocket
             Port = port;
             Socket = socket;
             NetworkStream = new NetworkStream(Socket, true);
+        }
+
+        public async void Disconnect()
+        {
+            await Task.Run(() => {
+                try { Socket.Disconnect(false); } catch (Exception) { }
+                try { Socket.Dispose(); } catch (Exception) { }
+                try { Socket.Close(); } catch (Exception) { }
+                try { NetworkStream.Dispose(); } catch (Exception) { }
+                try { NetworkStream.Close(); } catch (Exception) { }
+            });
         }
 
         /// <summary>
