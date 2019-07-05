@@ -777,22 +777,8 @@ namespace ExtensibleSocket
             SendResult sr = new SendResult(false, "", "", null, false, 0);
             try
             {
-                byte[] bytesCount = ConvertToBytes(bytes.Length.ToString());
-                NetworkStream.Write(bytesCount, 0, bytesCount.Length);
-                byte[] buffer = new byte[ConvertToBytes("1").Length];
-                NetworkStream.Read(buffer, 0, buffer.Length);
-                if (ConvertToString(buffer) != "1")
-                {
-                    sr.HasError = true;
-                    sr.Error = null;
-                    sr.ErrorText = "Problems with sending data fast";
-                    sr.Success = false;
-                    sr.Data = "Problems with sending data fast";
-                    sr.BytesSent = 0;
-                    return sr;
-                }
                 NetworkStream.Write(bytes, 0, bytes.Length);
-                buffer = new byte[ConvertToBytes("1").Length];
+                byte[] buffer = new byte[ConvertToBytes("1").Length];
                 NetworkStream.Read(buffer, 0, buffer.Length);
                 if (ConvertToString(buffer) != "1")
                 {
@@ -833,22 +819,8 @@ namespace ExtensibleSocket
             SendResult sr = new SendResult(false, "", "", null, false, 0);
             try
             {
-                byte[] bytesCount = ConvertToBytes(bytes.Length.ToString());
-                NetworkStream.Write(bytesCount, 0, bytesCount.Length);
-                byte[] buffer = new byte[ConvertToBytes("1").Length];
-                NetworkStream.Read(buffer, 0, buffer.Length);
-                if (ConvertToString(buffer) != "1")
-                {
-                    sr.HasError = true;
-                    sr.Error = null;
-                    sr.ErrorText = "Problems with sending data fast";
-                    sr.Success = false;
-                    sr.Data = "Problems with sending data fast";
-                    sr.BytesSent = 0;
-                    return sr;
-                }
                 NetworkStream.Write(bytes, 0, bytes.Length);
-                buffer = new byte[ConvertToBytes("1").Length];
+                byte[] buffer = new byte[ConvertToBytes("1").Length];
                 NetworkStream.Read(buffer, 0, buffer.Length);
                 if (ConvertToString(buffer) != "1")
                 {
@@ -888,22 +860,45 @@ namespace ExtensibleSocket
             ReceiveResult rr = new ReceiveResult(false, "", "", null, false, 0);
             try
             {
-                int size = 100;
+                int size = 1024000000;
                 byte[] buffer = new byte[size];
                 NetworkStream.Read(buffer, 0, buffer.Length);
-                try
-                {
-                    size = Convert.ToInt32(ConvertToString(buffer));
-                }
-                catch (Exception)
-                {
-                    size = 10240000;
-                }
                 byte[] data = ConvertToBytes("1");
                 NetworkStream.Write(data, 0, data.Length);
-                buffer = new byte[size];
+                rr.Data = ConvertToString(buffer);
+                rr.Error = null;
+                rr.ErrorText = "";
+                rr.HasError = false;
+                rr.Success = true;
+                rr.BytesReceived = buffer.Length;
+                rr.Bytes = buffer;
+                return rr;
+            }
+            catch (Exception e)
+            {
+                byte[] data = ConvertToBytes("0");
+                NetworkStream.Write(data, 0, data.Length);
+                rr.Success = false;
+                rr.HasError = true;
+                rr.ErrorText = e.ToString();
+                rr.Error = e;
+                rr.Data = e.ToString();
+                rr.BytesReceived = 0;
+                return rr;
+            }
+        }
+
+        /// <summary>
+        /// Faster variant of ReceiveData() function (this function is not so safety as ReceiveData() function)
+        /// </summary>
+        public ReceiveResult ReceiveDataFast(int size)
+        {
+            ReceiveResult rr = new ReceiveResult(false, "", "", null, false, 0);
+            try
+            {
+                byte[] buffer = new byte[size];
                 NetworkStream.Read(buffer, 0, buffer.Length);
-                data = ConvertToBytes("1");
+                byte[] data = ConvertToBytes("1");
                 NetworkStream.Write(data, 0, data.Length);
                 rr.Data = ConvertToString(buffer);
                 rr.Error = null;
@@ -1027,6 +1022,5 @@ namespace ExtensibleSocket
         public event ConnectedEventHandler ConnectedEvent;
 
         #endregion
-
     }
 }
