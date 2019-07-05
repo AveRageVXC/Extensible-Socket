@@ -26,6 +26,7 @@ namespace ExtensibleSocket
         /// Is ServerClient connected to the server or not
         /// </summary>
         public bool Connected { get; set; }
+        public NetworkStream NetworkStream { get; set; }
 
         /// <summary>
         /// ServerClient constructor
@@ -34,6 +35,7 @@ namespace ExtensibleSocket
         {
             Port = port;
             Socket = socket;
+            NetworkStream = new NetworkStream(Socket, true);
         }
 
         /// <summary>

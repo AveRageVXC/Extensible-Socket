@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28803.352
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExtensibleSocket", "ExtensibleSocket\ExtensibleSocket.csproj", "{39C642F2-9B86-4308-9919-48290F03A4B4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExtensibleSocket", "ExtensibleSocket\ExtensibleSocket.csproj", "{39C642F2-9B86-4308-9919-48290F03A4B4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Interface", "Interface\Interface.csproj", "{FDC1D745-3572-4DD5-B37A-6A898363C0B6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{83A01406-16FF-4F46-B090-E2AB6CCB3CB6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{FDC1D745-3572-4DD5-B37A-6A898363C0B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FDC1D745-3572-4DD5-B37A-6A898363C0B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FDC1D745-3572-4DD5-B37A-6A898363C0B6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83A01406-16FF-4F46-B090-E2AB6CCB3CB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83A01406-16FF-4F46-B090-E2AB6CCB3CB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83A01406-16FF-4F46-B090-E2AB6CCB3CB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83A01406-16FF-4F46-B090-E2AB6CCB3CB6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

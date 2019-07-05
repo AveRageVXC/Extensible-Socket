@@ -33,6 +33,7 @@ namespace ExtensibleSocket
         /// Length of bytes that bytes, that you want to send, have split to (by default it's 4096)
         /// </summary>
         public int BufferSize { get; private set; }
+        private NetworkStream NetworkStream { get; set; }
 
         #region constructors
 
@@ -43,7 +44,6 @@ namespace ExtensibleSocket
         {
             Encoding = Encoding.Unicode;
             Port = 1337;
-            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             Started = false;
             IPAddress = iPAddress;
             BufferSize = 4096;
@@ -62,7 +62,6 @@ namespace ExtensibleSocket
         {
             Encoding = Encoding.Unicode;
             Port = port;
-            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             Started = false;
             IPAddress = iPAddress;
             BufferSize = 4096;
@@ -81,7 +80,6 @@ namespace ExtensibleSocket
         {
             Encoding = encoding;
             Port = port;
-            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             Started = false;
             IPAddress = iPAddress;
             BufferSize = 4096;
@@ -100,7 +98,6 @@ namespace ExtensibleSocket
         {
             Encoding = encoding;
             Port = port;
-            Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             Started = false;
             IPAddress = iPAddress;
             BufferSize = bufferSize;
@@ -116,6 +113,38 @@ namespace ExtensibleSocket
 
         #region functions
 
+        #region fundamental functions
+
+        /// <summary>
+        /// Function that disconnects client from server
+        /// </summary>
+        public Result Disconnect()
+        {
+            Result r = new Result(false, "", "", null, false);
+            try
+            {
+                Socket = null;
+                ConnectedEvent(this, new ConnectedArgs(Socket));
+                NetworkStream = null;
+                Started = false;
+                r.Data = "Client successfuly disconnected";
+                r.Error = null;
+                r.ErrorText = "";
+                r.HasError = false;
+                r.Success = true;
+                return r;
+            }
+            catch (Exception e)
+            {
+                r.Data = e.ToString();
+                r.Error = e;
+                r.ErrorText = e.ToString();
+                r.Success = false;
+                r.HasError = true;
+                return r;
+            }
+        }
+
         /// <summary>
         /// Function that connects client to server
         /// </summary>
@@ -124,8 +153,10 @@ namespace ExtensibleSocket
             ConnectResult cr = new ConnectResult(false, "", "", null, false);
             try
             {
+                Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 Socket.Connect(new IPEndPoint(IPAddress, Port));
                 ConnectedEvent(this, new ConnectedArgs(Socket));
+                NetworkStream = new NetworkStream(Socket, true);
                 Started = true;
                 cr.Data = "Client successfuly connected";
                 cr.Error = null;
@@ -153,9 +184,11 @@ namespace ExtensibleSocket
             ConnectResult cr = new ConnectResult(false, "", "", null, false);
             try
             {
+                Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 IPAddress = iPAddress;
                 Socket.Connect(new IPEndPoint(IPAddress, Port));
                 ConnectedEvent(this, new ConnectedArgs(Socket));
+                NetworkStream = new NetworkStream(Socket, true);
                 cr.Data = "Client successfuly connected";
                 cr.Error = null;
                 cr.ErrorText = "";
@@ -182,10 +215,12 @@ namespace ExtensibleSocket
             ConnectResult cr = new ConnectResult(false, "", "", null, false);
             try
             {
+                Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 IPAddress = iPAddress;
                 Port = port;
                 Socket.Connect(new IPEndPoint(IPAddress, Port));
                 ConnectedEvent(this, new ConnectedArgs(Socket));
+                NetworkStream = new NetworkStream(Socket, true);
                 cr.Data = "Client successfuly connected";
                 cr.Error = null;
                 cr.ErrorText = "";
@@ -212,8 +247,10 @@ namespace ExtensibleSocket
             ConnectResult cr = new ConnectResult(false, "", "", null, false);
             try
             {
+                Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 Socket.Connect(new IPEndPoint(IPAddress, Port));
                 ConnectedEvent(this, new ConnectedArgs(Socket));
+                NetworkStream = new NetworkStream(Socket, true);
                 cr.Data = "Client successfuly connected";
                 cr.Error = null;
                 cr.ErrorText = "";
@@ -240,9 +277,11 @@ namespace ExtensibleSocket
             ConnectResult cr = new ConnectResult(false, "", "", null, false);
             try
             {
+                Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 IPAddress = iPAddress;
                 Socket.Connect(new IPEndPoint(IPAddress, Port));
                 ConnectedEvent(this, new ConnectedArgs(Socket));
+                NetworkStream = new NetworkStream(Socket, true);
                 cr.Data = "Client successfuly connected";
                 cr.Error = null;
                 cr.ErrorText = "";
@@ -269,10 +308,12 @@ namespace ExtensibleSocket
             ConnectResult cr = new ConnectResult(false, "", "", null, false);
             try
             {
+                Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 IPAddress = iPAddress;
                 Port = port;
                 Socket.Connect(new IPEndPoint(IPAddress, Port));
                 ConnectedEvent(this, new ConnectedArgs(Socket));
+                NetworkStream = new NetworkStream(Socket, true);
                 cr.Data = "Client successfuly connected";
                 cr.Error = null;
                 cr.ErrorText = "";
@@ -291,6 +332,10 @@ namespace ExtensibleSocket
             }
         }
 
+        #endregion
+
+        #region main functions
+
         /// <summary>
         /// Function that sends data in bytes to server and returns SendResult class that contains different kinds of information
         /// </summary>
@@ -308,21 +353,24 @@ namespace ExtensibleSocket
                 {
                     parts = ByteArraySplit(bytes, BufferSize);
                 }
-                Socket.Send(ConvertToBytes(parts.Count.ToString()));
+                byte[] data = ConvertToBytes(parts.Count.ToString());
+                NetworkStream.Write(data, 0, data.Length);
                 int size = 2;
                 byte[] buffer = new byte[size];
-                int len = Socket.Receive(buffer, size, SocketFlags.None);
+                int len = NetworkStream.Read(buffer, 0, buffer.Length);
                 string output = Encoding.Unicode.GetString(buffer, 0, len);
                 if (output == "0")
                 {
-                    Socket.Send(ConvertToBytes("1"));
+                    data = ConvertToBytes("1");
+                    NetworkStream.Write(data, 0, data.Length);
                     size = 100;
                     buffer = new byte[size];
-                    len = Socket.Receive(buffer, size, SocketFlags.None);
+                    len = NetworkStream.Read(buffer, 0, buffer.Length);
                     size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
-                    Socket.Send(ConvertToBytes("1"));
+                    data = ConvertToBytes("1");
+                    NetworkStream.Write(data, 0, data.Length);
                     buffer = new byte[size];
-                    len = Socket.Receive(buffer, size, SocketFlags.None);
+                    len = NetworkStream.Read(buffer, 0, buffer.Length);
                     output = Encoding.Unicode.GetString(buffer, 0, len);
                     sr.BytesSent = 0;
                     sr.Data = output;
@@ -334,20 +382,23 @@ namespace ExtensibleSocket
                 }
                 for (int i = 0; i < parts.Count; i++)
                 {
-                    Socket.Send(ConvertToBytes(parts[i].Length.ToString()));
+                    data = ConvertToBytes(parts[i].Length.ToString());
+                    NetworkStream.Write(data, 0, data.Length);
                     buffer = new byte[2];
-                    len = Socket.Receive(buffer, 2, SocketFlags.None);
+                    len = NetworkStream.Read(buffer, 0, buffer.Length);
                     output = Encoding.Unicode.GetString(buffer, 0, len);
                     if (output == "0")
                     {
-                        Socket.Send(ConvertToBytes("1"));
+                        data = ConvertToBytes("1");
+                        NetworkStream.Write(data, 0, data.Length);
                         size = 100;
                         buffer = new byte[size];
-                        len = Socket.Receive(buffer, size, SocketFlags.None);
+                        len = NetworkStream.Read(buffer, 0, buffer.Length);
                         size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
-                        Socket.Send(ConvertToBytes("1"));
+                        data = ConvertToBytes("1");
+                        NetworkStream.Write(data, 0, data.Length);
                         buffer = new byte[size];
-                        len = Socket.Receive(buffer, size, SocketFlags.None);
+                        len = NetworkStream.Read(buffer, 0, buffer.Length);
                         output = Encoding.Unicode.GetString(buffer, 0, len);
                         sr.BytesSent = 0;
                         sr.Data = output;
@@ -357,20 +408,22 @@ namespace ExtensibleSocket
                         sr.Success = false;
                         return sr;
                     }
-                    Socket.Send(parts[i]);
+                    NetworkStream.Write(parts[i], 0, parts[i].Length);
                     buffer = new byte[2];
-                    len = Socket.Receive(buffer, 2, SocketFlags.None);
+                    len = NetworkStream.Read(buffer, 0, buffer.Length);
                     output = Encoding.Unicode.GetString(buffer, 0, len);
                     if (output == "0")
                     {
-                        Socket.Send(ConvertToBytes("1"));
+                        data = ConvertToBytes("1");
+                        NetworkStream.Write(data, 0, data.Length);
                         size = 100;
                         buffer = new byte[size];
-                        len = Socket.Receive(buffer, size, SocketFlags.None);
+                        len = NetworkStream.Read(buffer, 0, buffer.Length);
                         size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
-                        Socket.Send(ConvertToBytes("1"));
+                        data = ConvertToBytes("1");
+                        NetworkStream.Write(data, 0, data.Length);
                         buffer = new byte[size];
-                        len = Socket.Receive(buffer, size, SocketFlags.None);
+                        len = NetworkStream.Read(buffer, 0, buffer.Length);
                         output = Encoding.Unicode.GetString(buffer, 0, len);
                         sr.BytesSent = 0;
                         sr.Data = output;
@@ -393,24 +446,27 @@ namespace ExtensibleSocket
             {
                 try
                 {
-                    Socket.Send(ConvertToBytes("0"));
+                    byte[] data = ConvertToBytes("0");
+                    NetworkStream.Write(data, 0, data.Length);
                     int size = 2;
                     byte[] buffer = new byte[size];
-                    int len = Socket.Receive(buffer, size, SocketFlags.None);
+                    int len = NetworkStream.Read(buffer, 0, buffer.Length);
                     string output = Encoding.Unicode.GetString(buffer, 0, len);
                     if (output == "1")
                     {
-                        Socket.Send(ConvertToBytes(ConvertToBytes(e.ToString()).Length.ToString()));
+                        data = ConvertToBytes(ConvertToBytes(e.ToString()).Length.ToString());
+                        NetworkStream.Write(data, 0, data.Length);
                         size = 2;
                         buffer = new byte[size];
-                        len = Socket.Receive(buffer, size, SocketFlags.None);
+                        len = NetworkStream.Read(buffer, 0, buffer.Length);
                         output = Encoding.Unicode.GetString(buffer, 0, len);
                         if (output == "1")
                         {
-                            Socket.Send(ConvertToBytes(e.ToString()));
+                            data = ConvertToBytes(ConvertToBytes(e.ToString()).Length.ToString());
+                            NetworkStream.Write(data, 0, data.Length);
                             size = 2;
                             buffer = new byte[size];
-                            len = Socket.Receive(buffer, size, SocketFlags.None);
+                            len = NetworkStream.Read(buffer, 0, buffer.Length);
                         }
                     }
                 }
@@ -442,21 +498,24 @@ namespace ExtensibleSocket
                 {
                     parts = ByteArraySplit(bytes, BufferSize);
                 }
-                Socket.Send(ConvertToBytes(parts.Count.ToString()));
+                byte[] data = ConvertToBytes(parts.Count.ToString());
+                NetworkStream.Write(data, 0, data.Length);
                 int size = 2;
                 byte[] buffer = new byte[size];
-                int len = Socket.Receive(buffer, size, SocketFlags.None);
+                int len = NetworkStream.Read(buffer, 0, buffer.Length);
                 string output = Encoding.Unicode.GetString(buffer, 0, len);
                 if (output == "0")
                 {
-                    Socket.Send(ConvertToBytes("1"));
+                    data = ConvertToBytes("1");
+                    NetworkStream.Write(data, 0, data.Length);
                     size = 100;
                     buffer = new byte[size];
-                    len = Socket.Receive(buffer, size, SocketFlags.None);
+                    len = NetworkStream.Read(buffer, 0, buffer.Length);
                     size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
-                    Socket.Send(ConvertToBytes("1"));
+                    data = ConvertToBytes("1");
+                    NetworkStream.Write(data, 0, data.Length);
                     buffer = new byte[size];
-                    len = Socket.Receive(buffer, size, SocketFlags.None);
+                    len = NetworkStream.Read(buffer, 0, buffer.Length);
                     output = Encoding.Unicode.GetString(buffer, 0, len);
                     sr.BytesSent = 0;
                     sr.Data = output;
@@ -468,20 +527,23 @@ namespace ExtensibleSocket
                 }
                 for (int i = 0; i < parts.Count; i++)
                 {
-                    Socket.Send(ConvertToBytes(parts[i].Length.ToString()));
+                    data = ConvertToBytes(parts[i].Length.ToString());
+                    NetworkStream.Write(data, 0, data.Length);
                     buffer = new byte[2];
-                    len = Socket.Receive(buffer, 2, SocketFlags.None);
+                    len = NetworkStream.Read(buffer, 0, buffer.Length);
                     output = Encoding.Unicode.GetString(buffer, 0, len);
                     if (output == "0")
                     {
-                        Socket.Send(ConvertToBytes("1"));
+                        data = ConvertToBytes("1");
+                        NetworkStream.Write(data, 0, data.Length);
                         size = 100;
                         buffer = new byte[size];
-                        len = Socket.Receive(buffer, size, SocketFlags.None);
+                        len = NetworkStream.Read(buffer, 0, buffer.Length);
                         size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
-                        Socket.Send(ConvertToBytes("1"));
+                        data = ConvertToBytes("1");
+                        NetworkStream.Write(data, 0, data.Length);
                         buffer = new byte[size];
-                        len = Socket.Receive(buffer, size, SocketFlags.None);
+                        len = NetworkStream.Read(buffer, 0, buffer.Length);
                         output = Encoding.Unicode.GetString(buffer, 0, len);
                         sr.BytesSent = 0;
                         sr.Data = output;
@@ -491,20 +553,22 @@ namespace ExtensibleSocket
                         sr.Success = false;
                         return sr;
                     }
-                    Socket.Send(parts[i]);
+                    NetworkStream.Write(parts[i], 0, parts[i].Length);
                     buffer = new byte[2];
-                    len = Socket.Receive(buffer, 2, SocketFlags.None);
+                    len = NetworkStream.Read(buffer, 0, buffer.Length);
                     output = Encoding.Unicode.GetString(buffer, 0, len);
                     if (output == "0")
                     {
-                        Socket.Send(ConvertToBytes("1"));
+                        data = ConvertToBytes("1");
+                        NetworkStream.Write(data, 0, data.Length);
                         size = 100;
                         buffer = new byte[size];
-                        len = Socket.Receive(buffer, size, SocketFlags.None);
+                        len = NetworkStream.Read(buffer, 0, buffer.Length);
                         size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
-                        Socket.Send(ConvertToBytes("1"));
+                        data = ConvertToBytes("1");
+                        NetworkStream.Write(data, 0, data.Length);
                         buffer = new byte[size];
-                        len = Socket.Receive(buffer, size, SocketFlags.None);
+                        len = NetworkStream.Read(buffer, 0, buffer.Length);
                         output = Encoding.Unicode.GetString(buffer, 0, len);
                         sr.BytesSent = 0;
                         sr.Data = output;
@@ -527,24 +591,27 @@ namespace ExtensibleSocket
             {
                 try
                 {
-                    Socket.Send(ConvertToBytes("0"));
+                    byte[] data = ConvertToBytes("0");
+                    NetworkStream.Write(data, 0, data.Length);
                     int size = 2;
                     byte[] buffer = new byte[size];
-                    int len = Socket.Receive(buffer, size, SocketFlags.None);
+                    int len = NetworkStream.Read(buffer, 0, buffer.Length);
                     string output = Encoding.Unicode.GetString(buffer, 0, len);
                     if (output == "1")
                     {
-                        Socket.Send(ConvertToBytes(ConvertToBytes(e.ToString()).Length.ToString()));
+                        data = ConvertToBytes(ConvertToBytes(e.ToString()).Length.ToString());
+                        NetworkStream.Write(data, 0, data.Length);
                         size = 2;
                         buffer = new byte[size];
-                        len = Socket.Receive(buffer, size, SocketFlags.None);
+                        len = NetworkStream.Read(buffer, 0, buffer.Length);
                         output = Encoding.Unicode.GetString(buffer, 0, len);
                         if (output == "1")
                         {
-                            Socket.Send(ConvertToBytes(e.ToString()));
+                            data = ConvertToBytes(ConvertToBytes(e.ToString()).Length.ToString());
+                            NetworkStream.Write(data, 0, data.Length);
                             size = 2;
                             buffer = new byte[size];
-                            len = Socket.Receive(buffer, size, SocketFlags.None);
+                            len = NetworkStream.Read(buffer, 0, buffer.Length);
                         }
                     }
                 }
@@ -568,18 +635,21 @@ namespace ExtensibleSocket
             {
                 int size = 100;
                 byte[] buffer = new byte[size];
-                int len = Socket.Receive(buffer, size, SocketFlags.None);
+                int len = NetworkStream.Read(buffer, 0, buffer.Length);
                 if (Encoding.Unicode.GetString(buffer, 0, len) == "0")
                 {
-                    Socket.Send(ConvertToBytes("1"));
+                    byte[] dataBytes = ConvertToBytes("1");
+                    NetworkStream.Write(dataBytes, 0, dataBytes.Length);
                     size = 100;
                     buffer = new byte[size];
-                    len = Socket.Receive(buffer, size, SocketFlags.None);
+                    len = NetworkStream.Read(buffer, 0, buffer.Length);
                     size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
-                    Socket.Send(ConvertToBytes("1"));
+                    dataBytes = ConvertToBytes("1");
+                    NetworkStream.Write(dataBytes, 0, dataBytes.Length);
                     buffer = new byte[size];
-                    len = Socket.Receive(buffer, size, SocketFlags.None);
-                    Socket.Send(ConvertToBytes("1"));
+                    len = NetworkStream.Read(buffer, 0, buffer.Length);
+                    dataBytes = ConvertToBytes("1");
+                    NetworkStream.Write(dataBytes, 0, dataBytes.Length);
                     sr.Data = Encoding.Unicode.GetString(buffer, 0, len);
                     sr.BytesReceived = 0;
                     sr.Bytes = null;
@@ -590,24 +660,28 @@ namespace ExtensibleSocket
                     return sr;
                 }
                 int partsCount = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
-                Socket.Send(ConvertToBytes("1"));
+                byte[] data = ConvertToBytes("1");
+                NetworkStream.Write(data, 0, data.Length);
                 List<byte[]> parts = new List<byte[]>();
                 for (int i = 0; i < partsCount; i++)
                 {
                     size = 100;
                     buffer = new byte[size];
-                    len = Socket.Receive(buffer, size, SocketFlags.None);
+                    len = NetworkStream.Read(buffer, 0, buffer.Length);
                     if (Encoding.Unicode.GetString(buffer, 0, len) == "0")
                     {
-                        Socket.Send(ConvertToBytes("1"));
+                        data = ConvertToBytes("1");
+                        NetworkStream.Write(data, 0, data.Length);
                         size = 100;
                         buffer = new byte[size];
-                        len = Socket.Receive(buffer, size, SocketFlags.None);
+                        len = NetworkStream.Read(buffer, 0, buffer.Length);
                         size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
-                        Socket.Send(ConvertToBytes("1"));
+                        data = ConvertToBytes("1");
+                        NetworkStream.Write(data, 0, data.Length);
                         buffer = new byte[size];
-                        len = Socket.Receive(buffer, size, SocketFlags.None);
-                        Socket.Send(ConvertToBytes("1"));
+                        len = NetworkStream.Read(buffer, 0, buffer.Length);
+                        data = ConvertToBytes("1");
+                        NetworkStream.Write(data, 0, data.Length);
                         sr.Data = Encoding.Unicode.GetString(buffer, 0, len);
                         sr.BytesReceived = 0;
                         sr.Bytes = null;
@@ -618,20 +692,24 @@ namespace ExtensibleSocket
                         return sr;
                     }
                     size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
-                    Socket.Send(ConvertToBytes("1"));
+                    data = ConvertToBytes("1");
+                    NetworkStream.Write(data, 0, data.Length);
                     buffer = new byte[size];
-                    len = Socket.Receive(buffer, size, SocketFlags.None);
+                    len = NetworkStream.Read(buffer, 0, buffer.Length);
                     if (Encoding.Unicode.GetString(buffer, 0, len) == "0")
                     {
-                        Socket.Send(ConvertToBytes("1"));
+                        data = ConvertToBytes("1");
+                        NetworkStream.Write(data, 0, data.Length);
                         size = 100;
                         buffer = new byte[size];
-                        len = Socket.Receive(buffer, size, SocketFlags.None);
+                        len = NetworkStream.Read(buffer, 0, buffer.Length);
                         size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
-                        Socket.Send(ConvertToBytes("1"));
+                        data = ConvertToBytes("1");
+                        NetworkStream.Write(data, 0, data.Length);
                         buffer = new byte[size];
-                        len = Socket.Receive(buffer, size, SocketFlags.None);
-                        Socket.Send(ConvertToBytes("1"));
+                        len = NetworkStream.Read(buffer, 0, buffer.Length);
+                        data = ConvertToBytes("1");
+                        NetworkStream.Write(data, 0, data.Length);
                         sr.Data = Encoding.Unicode.GetString(buffer, 0, len);
                         sr.BytesReceived = 0;
                         sr.Bytes = null;
@@ -641,7 +719,8 @@ namespace ExtensibleSocket
                         sr.Success = false;
                         return sr;
                     }
-                    Socket.Send(ConvertToBytes("1"));
+                    data = ConvertToBytes("1");
+                    NetworkStream.Write(data, 0, data.Length);
                     parts.Add(buffer);
                 }
                 byte[] bytes = ConcatToOneByteArray(parts.ToArray());
@@ -656,21 +735,24 @@ namespace ExtensibleSocket
             }
             catch (Exception e)
             {
-                Socket.Send(ConvertToBytes("0"));
+                byte[] data = ConvertToBytes("0");
+                NetworkStream.Write(data, 0, data.Length);
                 int size = 2;
                 byte[] buffer = new byte[size];
-                int len = Socket.Receive(buffer, size, SocketFlags.None);
+                int len = NetworkStream.Read(buffer, 0, buffer.Length);
                 string output = Encoding.Unicode.GetString(buffer, 0, len);
                 if (output == "1")
                 {
-                    Socket.Send(ConvertToBytes(ConvertToBytes(e.ToString()).Length.ToString()));
+                    data = ConvertToBytes(ConvertToBytes(e.ToString()).Length.ToString());
+                    NetworkStream.Write(data, 0, data.Length);
                     size = 2;
                     buffer = new byte[size];
-                    len = Socket.Receive(buffer, size, SocketFlags.None);
+                    len = NetworkStream.Read(buffer, 0, buffer.Length);
                     output = Encoding.Unicode.GetString(buffer, 0, len);
                     if (output == "1")
                     {
-                        Socket.Send(ConvertToBytes(e.ToString()));
+                        data = ConvertToBytes(e.ToString());
+                        NetworkStream.Write(data, 0, data.Length);
                     }
                 }
                 sr.Success = false;
@@ -682,6 +764,47 @@ namespace ExtensibleSocket
                 return sr;
             }
         }
+
+        #endregion
+
+        #region stream functions
+
+        public SendResult SendDataFast(byte[] bytes)
+        {
+            SendResult sr = new SendResult(false, "", "", null, false, 0);
+            try
+            {
+                byte[] bytesCount = ConvertToBytes(bytes.Length.ToString());
+                NetworkStream.Write(bytesCount, 0, bytesCount.Length);
+                NetworkStream.Read(new byte[2], 0, new byte[2].Length);
+                NetworkStream.Write(bytes, 0, bytes.Length);
+                NetworkStream.Read(new byte[2], 0, new byte[2].Length);
+            }
+            catch (Exception e)
+            {
+                sr.Success = false;
+                sr.HasError = true;
+                sr.ErrorText = e.ToString();
+                sr.Error = e;
+                sr.Data = e.ToString();
+                sr.BytesSent = 0;
+                return sr;
+            }
+        }
+
+        public ReceiveResult ReceiveDataFast()
+        {
+            int size = 10240000;
+            byte[] buffer = new byte[size];
+            NetworkStream.Read(buffer, 0, buffer.Length);
+            byte[] data = ConvertToBytes("1");
+            NetworkStream.Write(data, 0, data.Length);
+            return buffer;
+        }
+
+        #endregion
+
+        #region additional functions
 
         /// <summary>
         /// Function that converts bytes to string
@@ -754,6 +877,8 @@ namespace ExtensibleSocket
                 return null;
             }
         }
+
+        #endregion
 
         #endregion
 
