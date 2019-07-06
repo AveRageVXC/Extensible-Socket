@@ -34,18 +34,6 @@ namespace ExtensibleSocket
         /// </summary>
         public int BufferSize { get; set; }
         public NetworkStream NetworkStream { get; set; }
-        /// <summary>
-        /// Can receive and send functions be timeout
-        /// </summary>
-        public bool CanTimeout { get; set; }
-        /// <summary>
-        /// Time in milliseconds, after that time, receive function would be canceled and return error (If CanTimeout is true, then it works)
-        /// </summary>
-        public int ReceiveTimeout { get; set; }
-        /// <summary>
-        /// Time in milliseconds, after that time, send function would be canceled and return error (If CanTimeout is true, then it works)
-        /// </summary>
-        public int SendTimeout { get; set; }
 
         #region constructors
 
@@ -59,9 +47,6 @@ namespace ExtensibleSocket
             Started = false;
             IPAddress = iPAddress;
             BufferSize = 4096;
-            CanTimeout = false;
-            ReceiveTimeout = -1;
-            SendTimeout = -1;
             ErrorCaughtEvent += new ErrorCaughtEventHandler((sender, e) => {
 
             });
@@ -80,9 +65,6 @@ namespace ExtensibleSocket
             Started = false;
             IPAddress = iPAddress;
             BufferSize = 4096;
-            CanTimeout = false;
-            ReceiveTimeout = -1;
-            SendTimeout = -1;
             ErrorCaughtEvent += new ErrorCaughtEventHandler((sender, e) => {
 
             });
@@ -101,9 +83,6 @@ namespace ExtensibleSocket
             Started = false;
             IPAddress = iPAddress;
             BufferSize = 4096;
-            CanTimeout = false;
-            ReceiveTimeout = -1;
-            SendTimeout = -1;
             ErrorCaughtEvent += new ErrorCaughtEventHandler((sender, e) => {
 
             });
@@ -122,72 +101,6 @@ namespace ExtensibleSocket
             Started = false;
             IPAddress = iPAddress;
             BufferSize = bufferSize;
-            CanTimeout = false;
-            ReceiveTimeout = -1;
-            SendTimeout = -1;
-            ErrorCaughtEvent += new ErrorCaughtEventHandler((sender, e) => {
-
-            });
-            ConnectedEvent += new ConnectedEventHandler((sender, e) => {
-
-            });
-        }
-
-        /// <summary>
-        /// Constructor with custon server settings
-        /// </summary>
-        public Client(IPAddress iPAddress, int port, Encoding encoding, int bufferSize, bool canTimeout)
-        {
-            Encoding = encoding;
-            Port = port;
-            Started = false;
-            IPAddress = iPAddress;
-            BufferSize = bufferSize;
-            CanTimeout = canTimeout;
-            ReceiveTimeout = -1;
-            SendTimeout = -1;
-            ErrorCaughtEvent += new ErrorCaughtEventHandler((sender, e) => {
-
-            });
-            ConnectedEvent += new ConnectedEventHandler((sender, e) => {
-
-            });
-        }
-
-        /// <summary>
-        /// Constructor with custon server settings
-        /// </summary>
-        public Client(IPAddress iPAddress, int port, Encoding encoding, int bufferSize, bool canTimeout, int receiveTimeout)
-        {
-            Encoding = encoding;
-            Port = port;
-            Started = false;
-            IPAddress = iPAddress;
-            BufferSize = bufferSize;
-            CanTimeout = canTimeout;
-            ReceiveTimeout = receiveTimeout;
-            SendTimeout = -1;
-            ErrorCaughtEvent += new ErrorCaughtEventHandler((sender, e) => {
-
-            });
-            ConnectedEvent += new ConnectedEventHandler((sender, e) => {
-
-            });
-        }
-
-        /// <summary>
-        /// Constructor with custon server settings
-        /// </summary>
-        public Client(IPAddress iPAddress, int port, Encoding encoding, int bufferSize, bool canTimeout, int receiveTimeout, int sendTimeout)
-        {
-            Encoding = encoding;
-            Port = port;
-            Started = false;
-            IPAddress = iPAddress;
-            BufferSize = bufferSize;
-            CanTimeout = canTimeout;
-            ReceiveTimeout = receiveTimeout;
-            SendTimeout = sendTimeout;
             ErrorCaughtEvent += new ErrorCaughtEventHandler((sender, e) => {
 
             });
@@ -431,16 +344,6 @@ namespace ExtensibleSocket
             SendResult sr = new SendResult(false, "", "", null, false, 0);
             try
             {
-                if (CanTimeout)
-                {
-                    NetworkStream.ReadTimeout = ReceiveTimeout;
-                    NetworkStream.WriteTimeout = SendTimeout;
-                }
-                else
-                {
-                    NetworkStream.ReadTimeout = -1;
-                    NetworkStream.WriteTimeout = -1;
-                }
                 List<byte[]> parts = new List<byte[]>();
                 if (bytes.Length <= BufferSize)
                 {
@@ -537,16 +440,6 @@ namespace ExtensibleSocket
                 sr.HasError = false;
                 sr.ErrorText = "";
                 sr.Success = true;
-                return sr;
-            }
-            catch (TimeoutException e)
-            {
-                sr.Success = false;
-                sr.HasError = true;
-                sr.ErrorText = e.ToString();
-                sr.Error = e;
-                sr.Data = e.ToString();
-                sr.BytesSent = 0;
                 return sr;
             }
             catch (Exception e)
@@ -596,16 +489,6 @@ namespace ExtensibleSocket
             byte[] bytes = ConvertToBytes(str);
             try
             {
-                if (CanTimeout)
-                {
-                    NetworkStream.ReadTimeout = ReceiveTimeout;
-                    NetworkStream.WriteTimeout = SendTimeout;
-                }
-                else
-                {
-                    NetworkStream.ReadTimeout = -1;
-                    NetworkStream.WriteTimeout = -1;
-                }
                 List<byte[]> parts = new List<byte[]>();
                 if (bytes.Length <= BufferSize)
                 {
@@ -704,16 +587,6 @@ namespace ExtensibleSocket
                 sr.Success = true;
                 return sr;
             }
-            catch (TimeoutException e)
-            {
-                sr.Success = false;
-                sr.HasError = true;
-                sr.ErrorText = e.ToString();
-                sr.Error = e;
-                sr.Data = e.ToString();
-                sr.BytesSent = 0;
-                return sr;
-            }
             catch (Exception e)
             {
                 try
@@ -760,16 +633,6 @@ namespace ExtensibleSocket
             ReceiveResult rr = new ReceiveResult(false, "", "", null, false, 0);
             try
             {
-                if (CanTimeout)
-                {
-                    NetworkStream.ReadTimeout = ReceiveTimeout;
-                    NetworkStream.WriteTimeout = SendTimeout;
-                }
-                else
-                {
-                    NetworkStream.ReadTimeout = -1;
-                    NetworkStream.WriteTimeout = -1;
-                }
                 int size = 100;
                 byte[] buffer = new byte[size];
                 int len = NetworkStream.Read(buffer, 0, buffer.Length);
@@ -794,7 +657,6 @@ namespace ExtensibleSocket
                     rr.HasError = true;
                     rr.ErrorText = Encoding.Unicode.GetString(buffer, 0, len);
                     rr.Success = false;
-                    rr.Bytes = null;
                     return rr;
                 }
                 int partsCount = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
@@ -827,7 +689,6 @@ namespace ExtensibleSocket
                         rr.HasError = true;
                         rr.ErrorText = Encoding.Unicode.GetString(buffer, 0, len);
                         rr.Success = false;
-                        rr.Bytes = null;
                         return rr;
                     }
                     size = Convert.ToInt32(Encoding.Unicode.GetString(buffer, 0, len));
@@ -856,7 +717,6 @@ namespace ExtensibleSocket
                         rr.HasError = true;
                         rr.ErrorText = Encoding.Unicode.GetString(buffer, 0, len);
                         rr.Success = false;
-                        rr.Bytes = null;
                         return rr;
                     }
                     data = ConvertToBytes("1");
@@ -871,17 +731,6 @@ namespace ExtensibleSocket
                 rr.HasError = false;
                 rr.ErrorText = "";
                 rr.Success = true;
-                return rr;
-            }
-            catch (TimeoutException e)
-            {
-                rr.Success = false;
-                rr.HasError = true;
-                rr.ErrorText = e.ToString();
-                rr.Error = e;
-                rr.Data = e.ToString();
-                rr.BytesReceived = 0;
-                rr.Bytes = null;
                 return rr;
             }
             catch (Exception e)
@@ -912,7 +761,6 @@ namespace ExtensibleSocket
                 rr.Error = e;
                 rr.Data = e.ToString();
                 rr.BytesReceived = 0;
-                rr.Bytes = null;
                 return rr;
             }
         }
@@ -1071,7 +919,6 @@ namespace ExtensibleSocket
                 rr.Error = e;
                 rr.Data = e.ToString();
                 rr.BytesReceived = 0;
-                rr.Bytes = null;
                 return rr;
             }
         }
